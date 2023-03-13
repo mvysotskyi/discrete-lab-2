@@ -5,6 +5,10 @@ __pycache__/
 
 # C extensions
 *.so
+compressors/*.lzw
+# compressors/*.txt
+compressors/*.list
+compressors/*.decompressed
 
 # Distribution / packaging
 .Python
