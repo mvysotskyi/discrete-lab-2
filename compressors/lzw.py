@@ -16,27 +16,30 @@ class LZW(Compressor):
         """
         Returns the next element in the file.
         """
-        for i in range(self.max_word_length, 0, -1):
-            code = fpointer.read(i)
-            i = len(code)
+        code = fpointer.read(self.max_word_length + 1)
+        fpointer.seek(-len(code), 1)
 
-            if code in codes:
+        if not code:
+            return None
+
+        for i in range(len(code), 0, -1):
+            chunk = code[:i]
+
+            if chunk in codes:
+                fpointer.seek(len(chunk), 1)
+
                 if len(codes) > (1 << 14) - 1:
-                    return codes[code]
+                    return codes[chunk]
 
-                next_symbol = fpointer.read(1)
+                next_symbol = code[i:i + 1]
                 if not next_symbol:
-                    return codes[code]
+                    return codes[chunk]
 
-                codes[code + next_symbol] = len(codes)
-                self.max_word_length = max(self.max_word_length, len(code) + 1)
-                fpointer.seek(-1, 1)
+                codes[chunk + next_symbol] = len(codes)
+                if len(chunk + next_symbol) > self.max_word_length:
+                    self.max_word_length = len(chunk + next_symbol)
 
-                return codes[code]
-
-            fpointer.seek(-len(code), 1)
-
-        return None
+                return codes[chunk]
 
     def compress(self, src: str, dest: str):
         """
