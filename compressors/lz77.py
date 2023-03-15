@@ -8,7 +8,7 @@ class LZ77(Compressor):
     """
     LZ77 compression algorithm.
     """
-    def __init__(self, verbose=False, window_size=8192, lookahead_buffer_size=512):
+    def __init__(self, verbose=False, window_size=16000, lookahead_buffer_size=255):
         super().__init__(verbose)
         self._window_size = window_size
         self._window = b""
@@ -50,30 +50,18 @@ class LZ77(Compressor):
         fpointer.seek(-bytes_read, 1)
         return offset, length, self._update_window(fpointer, length)
 
-    def __int_to_bytes(self, num: int) -> bytes:
-        """
-        Converts an integer to bytes.
-        """
-        return num.to_bytes(2, 'big')
-
-    def __bytes_to_int(self, byte: bytes) -> int:
-        """
-        Converts bytes to an integer.
-        """
-        return int.from_bytes(byte, 'big')
-
     def compress(self, src: str, dest: str):
         """
         Compresses the content.
         """
         self._window = b""
 
-        with open(src, 'rb') as fpointer, open(dest, 'wb') as out:
+        with open(src, 'rb') as fpointer, open(dest, 'wb+') as out:
             while True:
                 match_idx, match_length, next_char = self._longest_match(fpointer)
 
-                out.write(self.__int_to_bytes(match_idx))
-                out.write(self.__int_to_bytes(match_length))
+                out.write(match_idx.to_bytes(2, 'big'))
+                out.write(match_length.to_bytes(1, 'big'))
                 out.write(next_char)
 
                 if not next_char:
@@ -85,8 +73,8 @@ class LZ77(Compressor):
         """
         with open(src, 'rb') as inp, open(dest, 'wb+') as out_ptr:
             while True:
-                offset = self.__bytes_to_int(inp.read(2))
-                length = self.__bytes_to_int(inp.read(2))
+                offset = int.from_bytes(inp.read(2), 'big')
+                length = int.from_bytes(inp.read(1), 'big')
                 next_char = inp.read(1)
 
                 out_ptr.seek(-offset, 1)
@@ -99,5 +87,8 @@ class LZ77(Compressor):
 
 if __name__ == '__main__':
     lz77 = LZ77()
-    lz77.compress('locations.list', 'cmp.locations.list')
-    lz77.decompress('cmp.locations.list', 'locations.list.decomressed')
+    # lz77.compress('locations.list', 'cmp.locations.list')
+    # lz77.decompress('cmp.locations.list', 'locations.list.decomressed')
+
+    lz77.compress('text.txt', 'cmp.test.txt')
+    # lz77.decompress('cmp.test.txt', 'text.txt.decomressed')
