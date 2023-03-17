@@ -8,8 +8,8 @@ class LZW(Compressor):
     """
     LZW compression algorithm.
     """
-    def __init__(self, verbose=False):
-        super().__init__(verbose)
+    def __init__(self):
+        super().__init__()
         self.max_word_length = 0
 
     def _find_next(self, fpointer, codes):
@@ -86,7 +86,7 @@ class LZW(Compressor):
                 last_str = result
 
 if __name__ == '__main__':
-    lzw = LZW(verbose=True)
+    lzw = LZW()
 
-    lzw.compress('text.txt', 'text.txt.lzw')
-    lzw.decompress('text.txt.lzw', 'text.txt.decompressed')
+    lzw.compress("doc.rtf", "doc.rtf.lzw")
+    lzw.decompress("doc.rtf.lzw", "doc.rtf.decompressed")

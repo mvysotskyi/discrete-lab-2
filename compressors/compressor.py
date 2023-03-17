@@ -7,9 +7,6 @@ class Compressor:
     """
     Base class for all compressors.
     """
-    def __init__(self, verbose=False):
-        self.verbose = verbose
-
     def compress(self, src: str, dest: str):
         """
         Compresses the content.

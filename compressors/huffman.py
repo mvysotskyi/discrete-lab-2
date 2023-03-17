@@ -11,11 +11,14 @@ from math import log2
 from collections import Counter
 from itertools import chain
 
-class HuffmanCode:
+from compressor import Compressor
+
+class HuffmanCode(Compressor):
     """
     Huffman algorithm implementation class.
     """
     def __init__(self) -> None:
+        super().__init__()
         self.bits = self.bits_dict()
 
     def _generate_dict(self, probs_dict: dict) -> None:
@@ -74,9 +77,9 @@ class HuffmanCode:
             code_sequence, huffman_code = self._encode(in_ptr.read())
 
             last_block_size = len(code_sequence) % 8
-            last_block = code_sequence[-last_block_size:]
+            last_block = code_sequence[-last_block_size:] if last_block_size else b""
 
-            assert last_block_size < 8 and last_block_size == len(last_block)
+            assert last_block_size <= 8 and len(last_block) == last_block_size
 
             out_ptr.write(last_block_size.to_bytes(1, "big"))
             out_ptr.write(bytes(last_block))
@@ -173,8 +176,5 @@ class HuffmanCode:
 if __name__ == "__main__":
     huff = HuffmanCode()
 
-    huff.compress("text.txt", "text.huff")
-    huff.decompress("text.huff", "dec.text.txt")
-
-    # huff.compress("locations.list", "locations.huff")
-    # huff.decompress("locations.huff", "dec.locations.list")
+    huff.compress("doc.rtf", "doc.huff")
+    huff.decompress("doc.huff", "doc2.rtf")

@@ -8,8 +8,8 @@ class LZ77(Compressor):
     """
     LZ77 compression algorithm.
     """
-    def __init__(self, verbose=False, window_size=16000, lookahead_buffer_size=255):
-        super().__init__(verbose)
+    def __init__(self, window_size=8192, lookahead_buffer_size=255):
+        super().__init__()
         self._window_size = window_size
         self._window = b""
         self._lookahead_buffer_size = lookahead_buffer_size
@@ -87,8 +87,6 @@ class LZ77(Compressor):
 
 if __name__ == '__main__':
     lz77 = LZ77()
-    # lz77.compress('locations.list', 'cmp.locations.list')
-    # lz77.decompress('cmp.locations.list', 'locations.list.decomressed')
 
-    lz77.compress('text.txt', 'cmp.test.txt')
-    # lz77.decompress('cmp.test.txt', 'text.txt.decomressed')
+    lz77.compress("doc.rtf", "doc.lz77")
+    lz77.decompress("doc.lz77", "doc.lz77.rtf")
