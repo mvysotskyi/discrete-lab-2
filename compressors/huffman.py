@@ -69,32 +69,52 @@ class HuffmanCode(Compressor):
 
         return tuple(code_sequence), huffman_code
 
+    def _to_bits(self, code_sequence: Sequence, huffman_code: dict) -> Generator:
+        """
+        Function that transforms the code sequence to bits.
+
+        Args:
+            code_sequence: sequence of the codes.
+            huffman_code: dictionary of the huffman code.
+
+        Returns:
+            Generator of the compressed data.
+        """
+        last_block_size = len(code_sequence) % 8
+        last_block = code_sequence[-last_block_size:] if last_block_size else b""
+
+        assert last_block_size <= 8 and len(last_block) == last_block_size
+
+        yield {value: key for key, value in huffman_code.items()}
+
+        yield last_block_size.to_bytes(1, "big")
+        yield bytes(last_block)
+
+        for idx in range(0, (len(code_sequence) // 8) * 8, 8):
+            byte = 0
+
+            for bit_idx in range(8):
+                byte = (byte << 1) | code_sequence[idx + bit_idx]
+
+            yield byte.to_bytes(1, "big")
+
     def compress(self, src: str, dest: str) -> None:
         """
         Function that compresses the file.
         """
         with open(src, "rb") as in_ptr, open(dest, "wb") as out_ptr:
             code_sequence, huffman_code = self._encode(in_ptr.read())
+            compress_generator = self._to_bits(code_sequence, huffman_code)
 
-            last_block_size = len(code_sequence) % 8
-            last_block = code_sequence[-last_block_size:] if last_block_size else b""
+            pickle.dump(next(compress_generator), out_ptr)
 
-            assert last_block_size <= 8 and len(last_block) == last_block_size
+            while True:
+                try:
+                    out_ptr.write(next(compress_generator))
+                except StopIteration:
+                    break
 
-            out_ptr.write(last_block_size.to_bytes(1, "big"))
-            out_ptr.write(bytes(last_block))
-
-            pickle.dump({value: key for key, value in huffman_code.items()}, out_ptr)
-
-            for idx in range(0, (len(code_sequence) // 8) * 8, 8):
-                byte = 0
-
-                for bit_idx in range(8):
-                    byte = (byte << 1) | code_sequence[idx + bit_idx]
-
-                out_ptr.write(byte.to_bytes(1, "big"))
-
-    def _decode(self, data: Sequence, huffman_code: dict, last_block: bytes) -> Generator:
+    def _from_bits(self, data: bytes, huffman_code: dict, last_block: bytes) -> Generator:
         """
         Function that decodes the file.
 
@@ -119,24 +139,43 @@ class HuffmanCode(Compressor):
 
         assert buffer == b"", "Buffer is not empty!"
 
+    def _decompress(self, src: str) -> Generator:
+        """
+        Function that decompresses the file.
+
+        Args:
+            data: data to decompress.
+
+        Returns:
+            Generator of the decompressed data.
+        """
+        with open(src, "rb") as in_ptr:
+            huffman_code = pickle.load(in_ptr)
+
+            last_block_size = int.from_bytes(in_ptr.read(1), "big")
+            last_block = in_ptr.read(last_block_size)
+
+            decode_generator = self._from_bits(list(in_ptr.read()), huffman_code, last_block)
+            while True:
+                try:
+                    yield next(decode_generator)
+                except StopIteration:
+                    break
+
     def decompress(self, src: str, dest: str) -> None:
         """
         Function that decompresses the file.
 
         Args:
-            src: path to the file to decompress.
+            data: data to decompress.
             dest: path to the decompressed file.
         """
-        with open(src, "rb") as in_ptr, open(dest, "wb") as out_ptr:
-            last_block_size = int.from_bytes(in_ptr.read(1), "big")
-            last_block = in_ptr.read(last_block_size)
+        with open(dest, "wb") as out_ptr:
+            data_generator = self._decompress(src)
 
-            huffman_code = pickle.load(in_ptr)
-
-            decode_generator = self._decode(list(in_ptr.read()), huffman_code, last_block)
             while True:
                 try:
-                    out_ptr.write(next(decode_generator).to_bytes(1, "big"))
+                    out_ptr.write(next(data_generator).to_bytes(1, "big"))
                 except StopIteration:
                     break
 
@@ -176,5 +215,7 @@ class HuffmanCode(Compressor):
 if __name__ == "__main__":
     huff = HuffmanCode()
 
-    huff.compress("doc.rtf", "doc.huff")
-    huff.decompress("doc.huff", "doc2.rtf")
+    # huff.compress("doc.rtf", "doc.huff")
+    # huff.decompress("doc.huff", "doc2.rtf")
+    huff.compress("..\\books\\1.txt", "..\\books\\1.huff")
+    huff.decompress("..\\books\\1.huff", "..\\books\\1.huff.txt")

@@ -8,7 +8,7 @@ class LZ77(Compressor):
     """
     LZ77 compression algorithm.
     """
-    def __init__(self, window_size=8192, lookahead_buffer_size=255):
+    def __init__(self, window_size=8192, lookahead_buffer_size=254):
         super().__init__()
         self._window_size = window_size
         self._window = b""
@@ -67,26 +67,57 @@ class LZ77(Compressor):
                 if not next_char:
                     break
 
-    def decompress(self, src: str, dest: str):
+    def _decompress(self, data: tuple, out_ptr):
         """
         Decompresses the content.
-        """
-        with open(src, 'rb') as inp, open(dest, 'wb+') as out_ptr:
-            while True:
-                offset = int.from_bytes(inp.read(2), 'big')
-                length = int.from_bytes(inp.read(1), 'big')
-                next_char = inp.read(1)
 
+        Args:
+            data (tuple): The data to decompress.
+            out_ptr: The output file pointer.
+
+        Returns:
+            None
+        """
+        for offset, length, next_char in data:
+
+            try:
                 out_ptr.seek(-offset, 1)
                 chunk = out_ptr.read(length) + next_char
                 out_ptr.seek(offset - length, 1)
                 out_ptr.write(chunk)
+            except OSError:
+                print(out_ptr.tell(), offset, length, next_char)
+
+    def decompress(self, src: str, dest: str):
+        """
+        Decompresses the content.
+        """
+        with open(src, "rb") as in_ptr, open(dest, 'wb+') as out_ptr:
+            data = []
+
+            while True:
+                offset = int.from_bytes(in_ptr.read(2), 'big')
+                length = int.from_bytes(in_ptr.read(1), 'big')
+                next_char = in_ptr.read(1)
+
+                data.append((offset, length, next_char))
 
                 if not next_char:
                     break
 
+            self._decompress(data, out_ptr)
+
 if __name__ == '__main__':
     lz77 = LZ77()
 
-    lz77.compress("doc.rtf", "doc.lz77")
-    lz77.decompress("doc.lz77", "doc.lz77.rtf")
+    # lz77.compress("doc.rtf", "doc.lz77")
+    # lz77.decompress("doc.lz77", "doc.lz77.rtf")
+
+    for i in range(1, 6):
+        # if i in (2, 1):
+        #     continue
+        # print(i)
+        lz77.compress(f"..\\books\\{i}.txt", f"..\\books\\{i}.txt.deflate")
+        lz77.decompress(f"..\\books\\{i}.txt.deflate", f"..\\books\\{i}.txt.deflate.txt")
+    # deflate.compress("..\\books\\1.txt", "..\\books\\1.txt.deflate")
+    # deflate.decompress("..\\books\\1.txt.deflate", "..\\books\\1.txt.deflate.txt")
